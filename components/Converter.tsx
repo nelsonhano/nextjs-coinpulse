@@ -8,18 +8,18 @@ import { formatCurrency } from '@/lib/utils';
 import {
   Select,
   SelectContent,
-  SelectGroup,
   SelectItem,
-  SelectLabel,
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
 
-const Converter = ({ symbol, icon, priceList }: ConverterProps) => {
+const Converter = ({ symbol, icon, priceList = {} }: ConverterProps) => {
   const [currency, setCurrency] = useState('usd');
   const [amount, setAmount] = useState('10');
 
-  const convertedPrice = (parseFloat(amount) || 0) * (priceList[currency] || 0);
+  const safePriceList = priceList || {};
+  const currentRate = safePriceList[currency] ?? safePriceList.usd ?? 0;
+  const convertedPrice = (parseFloat(amount) || 0) * currentRate;
 
   return (
     <div id="converter">
@@ -56,7 +56,7 @@ const Converter = ({ symbol, icon, priceList }: ConverterProps) => {
               </SelectValue>
             </SelectTrigger>
             <SelectContent className="select-content" data-converter>
-              {Object.keys(priceList).map((currencyCode) => (
+              {Object.keys(safePriceList).map((currencyCode) => (
                 <SelectItem value={currencyCode} key={currencyCode} className="select-item">
                   {currencyCode.toUpperCase()}
                 </SelectItem>

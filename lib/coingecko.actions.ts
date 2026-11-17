@@ -12,16 +12,25 @@ export async function fetcher<T>(
   params?: QueryParams,
   revalidate = 60,
 ): Promise<T> {
+  const cleanEndpoint = endpoint.startsWith('/') ? endpoint.slice(1) : endpoint;
+  const cleanBaseUrl = BASE_URL!.replace(/\/+$/, '');
+
   const url = qs.stringifyUrl(
     {
-      url: `${BASE_URL}/${endpoint}`,
+      url: `${cleanBaseUrl}/${cleanEndpoint}`,
       query: params,
     },
     { skipEmptyString: true, skipNull: true },
   );
 
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-  if (API_KEY && API_KEY !== 'demo') headers['x-cg-pro-api-key'] = API_KEY;
+  if (API_KEY && API_KEY !== 'demo') {
+    if (cleanBaseUrl.includes('pro-api.coingecko.com')) {
+      headers['x-cg-pro-api-key'] = API_KEY;
+    } else {
+      headers['x-cg-demo-api-key'] = API_KEY;
+    }
+  }
 
   const response = await fetch(url, {
     headers,

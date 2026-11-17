@@ -13,8 +13,8 @@ interface CandlestickChartProps {
   children?: React.ReactNode;
   mode?: 'historical' | 'live';
   initialPeriod?: Period;
-  liveInterval: '1s' | '1m';
-  setLiveInterval: (interval: '1s' | '1m') => void;
+  liveInterval?: '1s' | '1m';
+  setLiveInterval?: (interval: '1s' | '1m') => void;
 }
 
 interface ConverterProps {
@@ -237,6 +237,7 @@ interface LiveCoinHeaderProps {
   livePriceChangePercentage24h: number;
   priceChangePercentage30d: number;
   priceChange24h: number;
+  connectionStatus?: 'connecting' | 'connected' | 'reconnecting' | 'disconnected';
 }
 
 interface Category {
@@ -258,6 +259,7 @@ interface UseCoinGeckoWebSocketReturn {
   trades: Trade[];
   ohlcv: OHLCData | null;
   isConnected: boolean;
+  connectionStatus: 'connecting' | 'connected' | 'reconnecting' | 'disconnected';
 }
 
 interface DataTableColumn<T> {

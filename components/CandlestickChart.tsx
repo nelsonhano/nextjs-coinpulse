@@ -8,7 +8,12 @@ import {
   PERIOD_BUTTONS,
   PERIOD_CONFIG,
 } from '@/constants';
-import { CandlestickSeries, createChart, IChartApi, ISeriesApi } from 'lightweight-charts';
+import {
+  CandlestickSeries,
+  createChart,
+  type IChartApi,
+  type ISeriesApi,
+} from 'lightweight-charts';
 import { fetcher } from '@/lib/coingecko.actions';
 import { convertOHLCData } from '@/lib/utils';
 
@@ -70,13 +75,6 @@ const CandlestickChart = ({
     });
     const series = chart.addSeries(CandlestickSeries, getCandlestickConfig());
 
-    const convertedToSeconds = ohlcData.map(
-      (item) => [Math.floor(item[0] / 1000), item[1], item[2], item[3], item[4]] as OHLCData,
-    );
-
-    series.setData(convertOHLCData(convertedToSeconds));
-    chart.timeScale().fitContent();
-
     chartRef.current = chart;
     candleSeriesRef.current = series;
 
@@ -97,27 +95,39 @@ const CandlestickChart = ({
   useEffect(() => {
     if (!candleSeriesRef.current) return;
 
-    const convertedToSeconds = ohlcData.map(
-      (item) => [Math.floor(item[0] / 1000), item[1], item[2], item[3], item[4]] as OHLCData,
+    const convertedToSeconds = (ohlcData || []).map(
+      (item) =>
+        [
+          item[0] > 1e11 ? Math.floor(item[0] / 1000) : item[0],
+          item[1],
+          item[2],
+          item[3],
+          item[4],
+        ] as OHLCData,
     );
 
     let merged: OHLCData[];
 
     if (liveOhlcv) {
-      const liveTimestamp = liveOhlcv[0];
+      const liveTimestamp = liveOhlcv[0] > 1e11 ? Math.floor(liveOhlcv[0] / 1000) : liveOhlcv[0];
+      const normalizedLive: OHLCData = [
+        liveTimestamp,
+        liveOhlcv[1],
+        liveOhlcv[2],
+        liveOhlcv[3],
+        liveOhlcv[4],
+      ];
 
       const lastHistoricalCandle = convertedToSeconds[convertedToSeconds.length - 1];
 
       if (lastHistoricalCandle && lastHistoricalCandle[0] === liveTimestamp) {
-        merged = [...convertedToSeconds.slice(0, -1), liveOhlcv];
+        merged = [...convertedToSeconds.slice(0, -1), normalizedLive];
       } else {
-        merged = [...convertedToSeconds, liveOhlcv];
+        merged = [...convertedToSeconds, normalizedLive];
       }
     } else {
       merged = convertedToSeconds;
     }
-
-    merged.sort((a, b) => a[0] - b[0]);
 
     const converted = convertOHLCData(merged);
     candleSeriesRef.current.setData(converted);

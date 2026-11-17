@@ -27,7 +27,11 @@ const CoinsPagination = ({ currentPage, totalPages, hasMorePages }: Pagination) 
       <PaginationContent className="pagination-content">
         <PaginationItem className="pagination-control prev">
           <PaginationPrevious
-            onClick={() => currentPage > 1 && handlePageChange(currentPage - 1)}
+            href={currentPage > 1 ? `/coins?page=${currentPage - 1}` : undefined}
+            onClick={(e) => {
+              e.preventDefault();
+              if (currentPage > 1) handlePageChange(currentPage - 1);
+            }}
             className={currentPage === 1 ? 'control-disabled' : 'control-button'}
           />
         </PaginationItem>
@@ -36,10 +40,14 @@ const CoinsPagination = ({ currentPage, totalPages, hasMorePages }: Pagination) 
           {pageNumbers.map((page, index) => (
             <PaginationItem key={index}>
               {page === ELLIPSIS ? (
-                <span className="ellipsis">...</span>
+                <PaginationEllipsis className="ellipsis" />
               ) : (
                 <PaginationLink
-                  onClick={() => handlePageChange(page)}
+                  href={`/coins?page=${page}`}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    handlePageChange(page);
+                  }}
                   className={cn('page-link', {
                     'page-link-active': currentPage === page,
                   })}
@@ -53,7 +61,11 @@ const CoinsPagination = ({ currentPage, totalPages, hasMorePages }: Pagination) 
 
         <PaginationItem className="pagination-control next">
           <PaginationNext
-            onClick={() => !isLastPage && handlePageChange(currentPage + 1)}
+            href={!isLastPage ? `/coins?page=${currentPage + 1}` : undefined}
+            onClick={(e) => {
+              e.preventDefault();
+              if (!isLastPage) handlePageChange(currentPage + 1);
+            }}
             className={isLastPage ? 'control-disabled' : 'control-button'}
           />
         </PaginationItem>

@@ -1,6 +1,7 @@
 import React from 'react';
 import { fetcher, getPools } from '@/lib/coingecko.actions';
 import Link from 'next/link';
+import { notFound } from 'next/navigation';
 import { ArrowUpRight } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 import LiveDataWrapper from '@/components/LiveDataWrapper';
@@ -9,21 +10,34 @@ import Converter from '@/components/Converter';
 const Page = async ({ params }: NextPageProps) => {
   const { id } = await params;
 
-  const [coinData, coinOHLCData] = await Promise.all([
-    fetcher<CoinDetailsData>(`/coins/${id}`, {
-      dex_pair_format: 'contract_address',
-    }),
-    fetcher<OHLCData>(`/coins/${id}/ohlc`, {
-      vs_currency: 'usd',
-      days: 1,
-      precision: 'full',
-    }),
-  ]);
+  let coinData: CoinDetailsData | null = null;
+  let coinOHLCData: OHLCData[] = [];
+
+  try {
+    const [fetchedCoin, fetchedOHLC] = await Promise.all([
+      fetcher<CoinDetailsData>(`/coins/${id}`, {
+        dex_pair_format: 'contract_address',
+      }),
+      fetcher<OHLCData[]>(`/coins/${id}/ohlc`, {
+        vs_currency: 'usd',
+        days: 1,
+        precision: 'full',
+      }),
+    ]);
+    coinData = fetchedCoin;
+    coinOHLCData = Array.isArray(fetchedOHLC) ? fetchedOHLC : [];
+  } catch (error) {
+    console.error(`Failed to fetch coin ${id}:`, error);
+  }
+
+  if (!coinData) {
+    notFound();
+  }
 
   const platform = coinData.asset_platform_id
     ? coinData.detail_platforms?.[coinData.asset_platform_id]
     : null;
-  const network = platform?.geckoterminal_url.split('/')[3] || null;
+  const network = platform?.geckoterminal_url?.split('/')[3] || null;
   const contractAddress = platform?.contract_address || null;
 
   const pool = await getPools(id, network, contractAddress);
@@ -31,32 +45,32 @@ const Page = async ({ params }: NextPageProps) => {
   const coinDetails = [
     {
       label: 'Market Cap',
-      value: formatCurrency(coinData.market_data.market_cap.usd),
+      value: formatCurrency(coinData.market_data?.market_cap?.usd),
     },
     {
       label: 'Market Cap Rank',
-      value: `# ${coinData.market_cap_rank}`,
+      value: `# ${coinData.market_cap_rank ?? '-'}`,
     },
     {
       label: 'Total Volume',
-      value: formatCurrency(coinData.market_data.total_volume.usd),
+      value: formatCurrency(coinData.market_data?.total_volume?.usd),
     },
     {
       label: 'Website',
       value: '-',
-      link: coinData.links.homepage[0],
+      link: coinData.links?.homepage?.[0] || undefined,
       linkText: 'Homepage',
     },
     {
       label: 'Explorer',
       value: '-',
-      link: coinData.links.blockchain_site[0],
+      link: coinData.links?.blockchain_site?.[0] || undefined,
       linkText: 'Explorer',
     },
     {
       label: 'Community',
       value: '-',
-      link: coinData.links.subreddit_url,
+      link: coinData.links?.subreddit_url || undefined,
       linkText: 'Community',
     },
   ];
@@ -72,8 +86,8 @@ const Page = async ({ params }: NextPageProps) => {
       <section className="secondary">
         <Converter
           symbol={coinData.symbol}
-          icon={coinData.image.small}
-          priceList={coinData.market_data.current_price}
+          icon={coinData.image?.small || coinData.image?.large || '/logo.svg'}
+          priceList={coinData.market_data?.current_price ?? { usd: 0 }}
         />
 
         <div className="details">

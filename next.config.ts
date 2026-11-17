@@ -1,20 +1,26 @@
-import type { NextConfig } from "next";
+import type { NextConfig } from 'next';
+import path from 'path';
 
 const nextConfig: NextConfig = {
-  typescript: {
-    ignoreBuildErrors: true,
+  turbopack: {
+    root: path.resolve(__dirname),
   },
-    images: {
-        remotePatterns: [
-            {
-                protocol: "https",
-                hostname: "assets.coingecko.com",
-            }, {
-                protocol: "https",
-                hostname: "coin-images.coingecko.com",
-            },
-        ]
-    }
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'assets.coingecko.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'coin-images.coingecko.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'static.coingecko.com',
+      },
+    ],
+  },
 };
 
 export default nextConfig;

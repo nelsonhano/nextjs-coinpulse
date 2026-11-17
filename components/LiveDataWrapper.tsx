@@ -1,16 +1,21 @@
 'use client';
 
+import { useState } from 'react';
 import { Separator } from '@/components/ui/separator';
 import CandlestickChart from '@/components/CandlestickChart';
 import { useCoinGeckoWebSocket } from '@/hooks/useCoinGeckoWebSocket';
 import DataTable from '@/components/DataTable';
 import { formatCurrency, timeAgo } from '@/lib/utils';
-import { useState } from 'react';
 import CoinHeader from '@/components/CoinHeader';
+import { ArrowUpRight } from 'lucide-react';
 
 const LiveDataWrapper = ({ children, coinId, poolId, coin, coinOHLCData }: LiveDataProps) => {
   const [liveInterval, setLiveInterval] = useState<'1s' | '1m'>('1s');
-  const { trades, ohlcv, price } = useCoinGeckoWebSocket({ coinId, poolId, liveInterval });
+  const { trades, ohlcv, price, connectionStatus } = useCoinGeckoWebSocket({
+    coinId,
+    poolId,
+    liveInterval,
+  });
 
   const tradeColumns: DataTableColumn<Trade>[] = [
     {
@@ -44,17 +49,56 @@ const LiveDataWrapper = ({ children, coinId, poolId, coin, coinOHLCData }: LiveD
     },
   ];
 
+  const tickerColumns: DataTableColumn<Ticker>[] = [
+    {
+      header: 'Exchange',
+      cellClassName: 'price-cell',
+      cell: (ticker) => ticker.market?.name ?? '-',
+    },
+    {
+      header: 'Pair',
+      cellClassName: 'amount-cell',
+      cell: (ticker) => `${ticker.base}/${ticker.target}`,
+    },
+    {
+      header: 'Price',
+      cellClassName: 'value-cell',
+      cell: (ticker) =>
+        ticker.converted_last?.usd ? formatCurrency(ticker.converted_last.usd) : '-',
+    },
+    {
+      header: 'Trade',
+      cellClassName: 'time-cell',
+      cell: (ticker) =>
+        ticker.trade_url ? (
+          <a
+            href={ticker.trade_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-purple-400 hover:underline inline-flex items-center gap-1"
+          >
+            Trade <ArrowUpRight size={14} />
+          </a>
+        ) : (
+          '-'
+        ),
+    },
+  ];
+
   return (
     <section id="live-data-wrapper">
       <CoinHeader
         name={coin.name}
-        image={coin.image.large}
-        livePrice={price?.usd ?? coin.market_data.current_price.usd}
+        image={coin.image?.large || '/logo.svg'}
+        livePrice={price?.usd ?? coin.market_data?.current_price?.usd ?? 0}
         livePriceChangePercentage24h={
-          price?.change24h ?? coin.market_data.price_change_percentage_24h_in_currency.usd
+          price?.change24h ?? coin.market_data?.price_change_percentage_24h_in_currency?.usd ?? 0
         }
-        priceChangePercentage30d={coin.market_data.price_change_percentage_30d_in_currency.usd}
-        priceChange24h={coin.market_data.price_change_24h_in_currency.usd}
+        priceChangePercentage30d={
+          coin.market_data?.price_change_percentage_30d_in_currency?.usd ?? 0
+        }
+        priceChange24h={coin.market_data?.price_change_24h_in_currency?.usd ?? 0}
+        connectionStatus={connectionStatus}
       />
       <Separator className="divider" />
 
@@ -74,17 +118,31 @@ const LiveDataWrapper = ({ children, coinId, poolId, coin, coinOHLCData }: LiveD
 
       <Separator className="divider" />
 
-      {tradeColumns && (
-        <div className="trades">
-          <h4>Recent Trades</h4>
+      <div className="trades">
+        <h4>Recent Trades</h4>
 
-          <DataTable
-            columns={tradeColumns}
-            data={trades}
-            rowKey={(_, index) => index}
-            tableClassName="trades-table"
-          />
-        </div>
+        <DataTable
+          columns={tradeColumns}
+          data={trades}
+          rowKey={(_, index) => index}
+          tableClassName="trades-table"
+        />
+      </div>
+
+      {coin.tickers && coin.tickers.length > 0 && (
+        <>
+          <Separator className="divider" />
+          <div className="trades">
+            {children || <h4>Exchange Listings</h4>}
+
+            <DataTable
+              columns={tickerColumns}
+              data={coin.tickers.slice(0, 5)}
+              rowKey={(ticker, index) => `${ticker.market?.name || 'market'}-${index}`}
+              tableClassName="trades-table"
+            />
+          </div>
+        </>
       )}
     </section>
   );

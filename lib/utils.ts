@@ -1,5 +1,5 @@
 import { clsx, type ClassValue } from 'clsx';
-import { Time } from 'lightweight-charts';
+import type { Time } from 'lightweight-charts';
 import { twMerge } from 'tailwind-merge';
 
 export function cn(...inputs: ClassValue[]) {
@@ -70,15 +70,40 @@ export function timeAgo(date: string | number | Date): string {
 }
 
 export function convertOHLCData(data: OHLCData[]) {
-  return data
-    .map((d) => ({
-      time: d[0] as Time, // ensure seconds, not ms
-      open: d[1],
-      high: d[2],
-      low: d[3],
-      close: d[4],
-    }))
-    .filter((item, index, arr) => index === 0 || item.time !== arr[index - 1].time);
+  if (!Array.isArray(data)) return [];
+
+  const valid = data
+    .filter(
+      (d) =>
+        Array.isArray(d) &&
+        d.length >= 5 &&
+        typeof d[0] === 'number' &&
+        !isNaN(d[0]) &&
+        !isNaN(d[1]) &&
+        !isNaN(d[2]) &&
+        !isNaN(d[3]) &&
+        !isNaN(d[4]),
+    )
+    .sort((a, b) => a[0] - b[0]);
+
+  const result: { time: Time; open: number; high: number; low: number; close: number }[] = [];
+  let lastTime: number | null = null;
+
+  for (const d of valid) {
+    const timeSec = d[0];
+    if (lastTime === null || timeSec > lastTime) {
+      result.push({
+        time: timeSec as Time,
+        open: d[1],
+        high: d[2],
+        low: d[3],
+        close: d[4],
+      });
+      lastTime = timeSec;
+    }
+  }
+
+  return result;
 }
 
 export const ELLIPSIS = 'ellipsis' as const;
