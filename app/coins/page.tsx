@@ -100,6 +100,20 @@ const Coins = async ({ searchParams }: NextPageProps) => {
             <p className="text-sm mt-2 text-purple-100/40">
               CoinGecko API might be rate limited. Please refresh in a moment.
             </p>
+            <div className="mt-6 flex justify-center gap-4">
+              <Link
+                href={`/coins?page=${currentPage}`}
+                className="px-4 py-2 rounded-lg bg-purple-600 hover:bg-purple-700 text-white text-sm font-medium transition cursor-pointer"
+              >
+                Refresh
+              </Link>
+              <Link
+                href="/"
+                className="px-4 py-2 rounded-lg bg-dark-400 hover:bg-dark-400/80 text-purple-100 text-sm font-medium transition border border-purple-100/10"
+              >
+                Back to Home
+              </Link>
+            </div>
           </div>
         ) : (
           <>

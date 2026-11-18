@@ -12,6 +12,7 @@ const Page = async ({ params }: NextPageProps) => {
 
   let coinData: CoinDetailsData | null = null;
   let coinOHLCData: OHLCData[] = [];
+  let apiError: (Error & { status?: number }) | null = null;
 
   try {
     const [fetchedCoin, fetchedOHLC] = await Promise.all([
@@ -28,9 +29,13 @@ const Page = async ({ params }: NextPageProps) => {
     coinOHLCData = Array.isArray(fetchedOHLC) ? fetchedOHLC : [];
   } catch (error) {
     console.error(`Failed to fetch coin ${id}:`, error);
+    apiError = error as Error & { status?: number };
   }
 
   if (!coinData) {
+    if (apiError && apiError.status !== 404) {
+      throw apiError;
+    }
     notFound();
   }
 

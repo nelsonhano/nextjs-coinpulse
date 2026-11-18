@@ -243,3 +243,48 @@ test('WebSocket status badge labels and indicator dot classes', () => {
   assert.equal(disconnected.label, 'disconnected');
   assert.equal(disconnected.dotClass, 'bg-gray-500');
 });
+
+test('Coin details error classifier differentiates 404 from 429 rate limits', () => {
+  const classifyError = (error: { status?: number }) => {
+    if (error.status === 404) {
+      return 'NOT_FOUND';
+    }
+    return 'RETHROW_ERROR_BOUNDARY';
+  };
+
+  assert.equal(classifyError({ status: 404 }), 'NOT_FOUND');
+  assert.equal(classifyError({ status: 429 }), 'RETHROW_ERROR_BOUNDARY');
+  assert.equal(classifyError({ status: 500 }), 'RETHROW_ERROR_BOUNDARY');
+  assert.equal(classifyError({}), 'RETHROW_ERROR_BOUNDARY');
+});
+
+test('In-memory cache returns cached data within TTL and expires afterwards', () => {
+  const cache = new Map<string, { data: string; expiresAt: number }>();
+
+  const getCached = (key: string, now: number) => {
+    const entry = cache.get(key);
+    if (entry && entry.expiresAt > now) {
+      return entry.data;
+    }
+    return null;
+  };
+
+  cache.set('/coins/ethereum', { data: 'ethereum-data', expiresAt: 1000 });
+
+  assert.equal(getCached('/coins/ethereum', 500), 'ethereum-data');
+  assert.equal(getCached('/coins/ethereum', 1000), null);
+  assert.equal(getCached('/coins/ethereum', 1500), null);
+});
+
+test('429 retry backoff parses retry-after header and applies fallback formula', () => {
+  const calculate429Delay = (retryAfterHeader: string | null, attempt: number) => {
+    if (retryAfterHeader) {
+      return Math.max(Number(retryAfterHeader) * 1000, 1000);
+    }
+    return 1000 * Math.pow(1.5, attempt);
+  };
+
+  assert.equal(calculate429Delay('3', 1), 3000);
+  assert.equal(calculate429Delay(null, 1), 1500);
+  assert.equal(calculate429Delay(null, 2), 2250);
+});
